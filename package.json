@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "description": "Central desktop para organizar projetos de software e coordenar squads de agentes de IA executados pelo Claude Code.",
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "engines": {
     "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
