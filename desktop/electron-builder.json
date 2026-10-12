@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "dev.squaddesktop.app",
+  "productName": "Shiro",
+  "copyright": "Shiro",
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "files": [
+    "build/**/*.js",
+    "!build/test/**",
+    "resources/icon.png",
+    "package.json",
+    "resources/icon.ico"
+  ],
+  "extraResources": [
+    {
+      "from": "../backend/target/squad-desktop-backend.jar",
+      "to": "backend/squad-desktop-backend.jar"
+    },
+    {
+      "from": "../frontend/dist/frontend/browser",
+      "to": "frontend"
+    },
+    {
+      "from": "../.toolchain/runtime",
+      "to": "runtime"
+    }
+  ],
+  "asar": true,
+  "electronFuses": {
+    "runAsNode": false,
+    "enableCookieEncryption": true,
+    "enableNodeOptionsEnvironmentVariable": false,
+    "enableNodeCliInspectArguments": false,
+    "enableEmbeddedAsarIntegrityValidation": true,
+    "onlyLoadAppFromAsar": true
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "resources/icon.ico",
+    "signAndEditExecutable": true
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Shiro",
+    "uninstallDisplayName": "Shiro",
+    "deleteAppDataOnUninstall": false,
+    "artifactName": "Shiro-Setup-${version}.${ext}"
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "icon": "resources/icon.png",
+    "category": "Development"
+  }
+}

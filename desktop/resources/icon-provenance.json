@@ -1,0 +1,22 @@
+{
+  "source": "A:/Ambiente/shiro-identidade-proposta/01-icone/variantes/png/shiro-min-light-1024.png",
+  "sha256": "e325a1a881bb28e55a3069ee2c027f287e5b8a45eda0367c4407f7a2277448d6",
+  "originalArtModified": false,
+  "png": {
+    "width": 1024,
+    "height": 1024
+  },
+  "icoSizes": [
+    16,
+    20,
+    24,
+    32,
+    40,
+    48,
+    64,
+    128,
+    256
+  ],
+  "windowWindows": "icon.ico",
+  "splashAndLinux": "icon.png"
+}

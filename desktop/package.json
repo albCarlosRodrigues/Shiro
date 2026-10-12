@@ -1,0 +1,21 @@
+{
+  "name": "squad-desktop-shell",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Shell desktop (Electron) do Shiro: janela, diálogos nativos e ciclo de vida do serviço Java.",
+  "author": "Shiro",
+  "main": "build/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "electron .",
+    "test": "node --test \"build/test/*.test.js\"",
+    "test:e2e": "node test/e2e.mjs",
+    "dist": "electron-builder --win nsis --config electron-builder.json"
+  },
+  "devDependencies": {
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.0",
+    "playwright-core": "1.56.1",
+    "typescript": "~6.0.0"
+  }
+}
