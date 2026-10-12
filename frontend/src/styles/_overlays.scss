@@ -1,0 +1,144 @@
+// Drawers, diálogos, paleta de comandos e avisos. Ficam fora dos componentes para manter o orçamento de estilo.
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+  animation: sd-fade var(--dur) var(--ease);
+}
+
+.drawer {
+  position: fixed;
+  top: var(--topbar-h);
+  right: 0;
+  bottom: 0;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 96vw);
+  border-left: 1px solid var(--line-2);
+  background: var(--bg-2);
+  box-shadow: -18px 0 40px var(--shadow);
+  animation: sd-slide var(--dur) var(--ease);
+
+  &.wide { width: min(980px, 98vw); }
+  &.narrow { width: min(520px, 96vw); }
+
+  > header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 48px;
+    padding: 0 12px 0 16px;
+    border-bottom: 1px solid var(--line-1);
+    flex: none;
+  }
+  > .body { flex: 1 1 auto; overflow: auto; padding: 16px; }
+  > footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-1);
+    background: var(--bg-2);
+    flex: none;
+  }
+}
+
+.dialog {
+  position: fixed;
+  top: 18vh;
+  left: 50%;
+  z-index: 61;
+  width: min(460px, 94vw);
+  transform: translateX(-50%);
+  border-radius: var(--r-lg);
+  background: var(--bg-3);
+  box-shadow: var(--shadow-pop);
+  animation: sd-pop var(--dur) var(--ease);
+
+  > header { padding: 14px 16px 6px; }
+  > .body { padding: 4px 16px 12px; color: var(--fg-2); }
+  > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; }
+}
+.dialog-scrim { z-index: 60; }
+
+.palette {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 94vw);
+  max-height: 64vh;
+  transform: translateX(-50%);
+  border-radius: var(--r-lg);
+  background: var(--bg-3);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: sd-pop var(--dur) var(--ease);
+
+  > input {
+    height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-bottom: 1px solid var(--line-1);
+    background: transparent;
+    font-size: var(--fs-lg);
+  }
+  > ul { list-style: none; margin: 0; padding: 4px; overflow: auto; }
+  li button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--fg-1);
+    text-align: left;
+    cursor: pointer;
+  }
+  li button[aria-selected='true'] { background: var(--bg-5); }
+  li .group { color: var(--fg-3); font-size: var(--fs-xs); }
+}
+.palette-scrim { z-index: 70; background: var(--scrim); }
+
+.toasts {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, 92vw);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--signal);
+  border-radius: var(--r-md);
+  background: var(--bg-4);
+  box-shadow: var(--shadow-pop);
+  color: var(--fg-1);
+  font-size: var(--fs-sm);
+  pointer-events: auto;
+  animation: sd-pop var(--dur) var(--ease);
+
+  &.error { border-left-color: var(--danger); }
+  &.warn { border-left-color: var(--warn); }
+  &.ok { border-left-color: var(--ok); }
+}
+
+@keyframes sd-fade { from { opacity: 0; } }
+@keyframes sd-slide { from { transform: translateX(24px); opacity: 0; } }
+@keyframes sd-pop { from { transform: translateX(-50%) scale(0.98); opacity: 0; } }
+.toast { animation-name: sd-fade; }

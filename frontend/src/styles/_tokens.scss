@@ -1,0 +1,99 @@
+// Tokens do Squad Desktop. Tema escuro grafite, denso, com um acento frio ("sinal") e âmbar para atenção.
+// Cada estado tem cor, ícone e texto: a cor nunca é a única pista.
+:root {
+  --agent-ink-mix: 100%;
+
+  --signal-hi: #a5b4ff;       // hover do botão primário (hoje #a5b4ff fixo em _controls.scss)
+  --signal-fg: #c9d1ff;       // texto do aviso informativo (hoje #c9d1ff)
+  --warn-fg: #f1d49a;         // texto do aviso de atenção (hoje #f1d49a)
+  --danger-fg: #f5b3a9;       // texto do aviso de erro e stderr do console (hoje #f5b3a9 e #f0a59a)
+  --role-cmd: #e9b44c;        // sigla CMD
+  --role-intel: #8fa2ff;      // siglas PRD e ADR
+  --role-op: #4cc2b0;         // sigla OP
+  --hair: #5b52d1;            // cabelo da Shiro: base
+  --hair-shadow: #2c1f7b;     // cabelo: sombra
+  --hair-light: #a8adf5;      // cabelo: reflexo
+  --hair-rim: #121118;        // aro dos óculos sobre o cabelo, nos ícones de 16 a 64 px (creme nos temas de cabelo escuro)
+  --scrim: #0506088c;         // véu atrás de diálogos (hoje rgba(5, 6, 8, 0.55))
+  --shadow: #00000073;        // sombra de menus (hoje rgba(0, 0, 0, 0.45))
+  --shadow-pop: 0 12px 32px var(--shadow), 0 0 0 1px var(--line-2);
+
+  color-scheme: dark;
+
+  // superfícies, da mais funda à mais alta
+  --bg-0: #0e0f11;      // moldura da janela
+  --bg-1: #141518;      // área de trabalho
+  --bg-2: #1a1b1f;      // painéis
+  --bg-3: #212227;      // cabeçalhos, campos
+  --bg-4: #2a2c32;      // hover, chips
+  --bg-5: #34363d;      // selecionado
+
+  --line-1: rgba(255, 255, 255, 0.06);
+  --line-2: rgba(255, 255, 255, 0.10);
+  --line-3: rgba(255, 255, 255, 0.18);
+
+  --fg-1: #ecebe7;      // texto principal
+  --fg-2: #b9b8b3;      // texto secundário
+  --fg-3: #85848a;      // rótulos, metadados
+  --fg-4: #5d5c63;      // desabilitado
+
+  --signal: #8fa2ff;    // acento: foco, seleção, painel ativo
+  --signal-dim: rgba(143, 162, 255, 0.16);
+  --signal-ink: #0e0f11;
+
+  // estados (sempre acompanhados de ícone/texto)
+  --st-running: #4cc2b0;
+  --st-queued: #8fa2ff;
+  --st-waiting: #e9b44c;
+  --st-done: #8ccf7e;
+  --st-failed: #ef7b6c;
+  --st-idle: #85848a;
+
+  --danger: #ef7b6c;
+  --danger-dim: rgba(239, 123, 108, 0.14);
+  --warn: #e9b44c;
+  --warn-dim: rgba(233, 180, 76, 0.14);
+  --ok: #8ccf7e;
+
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  --topbar-h: 36px;
+  --pane-head-h: 34px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 140ms;
+
+  --shadow-pop: 0 12px 32px var(--shadow), 0 0 0 1px var(--line-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+  --agent-ink-mix: 100%;
+
+  --signal-hi: #a5b4ff;       // hover do botão primário (hoje #a5b4ff fixo em _controls.scss)
+  --signal-fg: #c9d1ff;       // texto do aviso informativo (hoje #c9d1ff)
+  --warn-fg: #f1d49a;         // texto do aviso de atenção (hoje #f1d49a)
+  --danger-fg: #f5b3a9;       // texto do aviso de erro e stderr do console (hoje #f5b3a9 e #f0a59a)
+  --role-cmd: #e9b44c;        // sigla CMD
+  --role-intel: #8fa2ff;      // siglas PRD e ADR
+  --role-op: #4cc2b0;         // sigla OP
+  --hair: #5b52d1;            // cabelo da Shiro: base
+  --hair-shadow: #2c1f7b;     // cabelo: sombra
+  --hair-light: #a8adf5;      // cabelo: reflexo
+  --hair-rim: #121118;        // aro dos óculos sobre o cabelo, nos ícones de 16 a 64 px (creme nos temas de cabelo escuro)
+  --scrim: #0506088c;         // véu atrás de diálogos (hoje rgba(5, 6, 8, 0.55))
+  --shadow: #00000073;        // sombra de menus (hoje rgba(0, 0, 0, 0.45))
+  --shadow-pop: 0 12px 32px var(--shadow), 0 0 0 1px var(--line-2);
+ --dur: 0ms; }
+}
