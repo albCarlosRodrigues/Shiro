@@ -1,0 +1,23 @@
+# Dependências e saídas de build
+node_modules/
+dist/
+out-tsc/
+target/
+.angular/
+desktop/build/
+desktop/release/
+
+# Ferramentas e caches baixados pelo bootstrap (Node, JDK, Maven, repositório Maven local)
+.toolchain/
+.sync/
+
+# Dados locais de desenvolvimento (o app instalado grava em %APPDATA%/Squad Desktop)
+.data/
+
+# Editores e sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
