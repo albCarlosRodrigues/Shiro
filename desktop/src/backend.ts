@@ -237,6 +237,7 @@ export class BackendProcess {
       if (child.exitCode !== null) resolve();
       else child.once('exit', () => resolve());
     });
+    const started = Date.now();
     try {
       await this.request('POST', '/api/system/shutdown', 3_000);
     } catch {
@@ -247,7 +248,16 @@ export class BackendProcess {
       this.options.log.write('O serviço não encerrou no prazo; encerrando a árvore de processos.\n');
       await killTree(child);
     }
+    this.options.log.write(shutdownSummary(Date.now() - started, !finished, child.exitCode));
   }
+}
+
+/** Linha de log de cada fechamento: quanto tempo levou desde o pedido e se foi preciso forçar. */
+export function shutdownSummary(elapsedMs: number, forced: boolean, code: number | null): string {
+  const seconds = (elapsedMs / 1000).toFixed(2);
+  return forced
+    ? `Encerramento forçado depois de ${seconds} s (o serviço não saiu no prazo).\n`
+    : `Encerramento concluído em ${seconds} s (código ${code ?? 'desconhecido'}).\n`;
 }
 
 function delay(ms: number): Promise<void> {
