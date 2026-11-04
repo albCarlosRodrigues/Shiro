@@ -56,3 +56,22 @@ export function closeAction(state: { quitting: boolean; keepRunningInTray: boole
   if (state.keepRunningInTray && state.trayAvailable && state.backendReady) return 'hide';
   return 'quit';
 }
+
+/** Aviso do sistema pedido pela interface (fim de execução, permissão). */
+export interface NotificationRequest {
+  title: string;
+  body: string;
+}
+
+export function validateNotification(value: unknown): NotificationRequest {
+  if (typeof value !== 'object' || value === null) throw new IpcValidationError('aviso inválido');
+  const { title, body } = value as Record<string, unknown>;
+  if (typeof title !== 'string' || !title.trim() || title.length > 120 ||
+      typeof body !== 'string' || body.length > 300) throw new IpcValidationError('aviso inválido');
+  return { title: title.trim(), body };
+}
+
+/** Só incomoda quem não está olhando: janela escondida na bandeja, minimizada ou sem foco. */
+export function shouldNotify(window: { exists: boolean; visible: boolean; minimized: boolean; focused: boolean }): boolean {
+  return !window.exists || !window.visible || window.minimized || !window.focused;
+}

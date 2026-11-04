@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { BackendProcess, BackendStartError, resolveLayout } from './backend';
-import { closeAction, loadBackground, saveBackground, validateBackgroundSetting } from './background';
+import { closeAction, loadBackground, saveBackground, shouldNotify, validateBackgroundSetting, validateNotification } from './background';
 import {
   CHANNELS, IpcValidationError, isTrustedSender, validateOpenText, validatePath, validatePickFolder, validateSaveText,
   validateWindowAction, validateAppearance, type InitInfo,
@@ -366,6 +366,24 @@ function registerIpc(): void {
   ipcMain.handle(CHANNELS.setBackground, guard(validateBackgroundSetting, value => {
     background = { ...background, keepRunningInTray: value.keepRunningInTray };
     saveBackground(paths.background, background);
+  }));
+  // avisos de execução (concluída, falhou, precisa de permissão): só quando a pessoa não está olhando a janela
+  ipcMain.handle(CHANNELS.notify, guard(validateNotification, notice => {
+    const visible = {
+      exists: mainWindow !== null,
+      visible: mainWindow?.isVisible() ?? false,
+      minimized: mainWindow?.isMinimized() ?? false,
+      focused: mainWindow?.isFocused() ?? false,
+    };
+    if (!shouldNotify(visible) || !Notification.isSupported()) return { shown: false };
+    const notification = new Notification({
+      title: notice.title,
+      body: notice.body,
+      icon: path.join(__dirname, '..', 'resources', 'icon.png'),
+    });
+    notification.on('click', () => showWindow());
+    notification.show();
+    return { shown: true };
   }));
   ipcMain.handle(CHANNELS.setAppearance, guard(validateAppearance, value => {
     saveAppearance(appearanceFile, value);

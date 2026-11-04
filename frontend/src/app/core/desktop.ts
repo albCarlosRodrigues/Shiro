@@ -21,6 +21,8 @@ export interface SquadDesktopBridge {
   /** Modo em segundo plano: o X esconde a janela na bandeja (versões antigas do shell não têm). */
   getBackgroundMode?(): Promise<{ keepRunningInTray: boolean; trayAvailable: boolean }>;
   setBackgroundMode?(keepRunningInTray: boolean): Promise<void>;
+  /** Aviso do sistema; o shell só mostra se a janela estiver escondida, minimizada ou sem foco. */
+  notify?(notice: { title: string; body: string }): Promise<{ shown: boolean }>;
 }
 
 declare global {
