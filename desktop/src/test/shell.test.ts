@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { javaArgs, parseReady, resolveLayout, utf8Locale } from '../backend';
+import { javaArgs, parseReady, resolveLayout, shutdownSummary, startFailureMessage, utf8Locale } from '../backend';
 import {
   IpcValidationError, isTrustedSender, validateOpenText, validatePickFolder, validateSaveText, validateWindowAction,
 } from '../ipc-contract';
@@ -116,5 +116,37 @@ describe('log e janela', () => {
     assert.equal(small.width, 960, 'tamanho mínimo respeitado');
     assert.deepEqual(loadWindowState(path.join(dir, 'nao-existe.json'), []), { width: 1366, height: 820, maximized: false });
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('resumo do encerramento', () => {
+  it('registra a duração e o código quando o serviço sai sozinho', () => {
+    assert.equal(shutdownSummary(243, false, 0), 'Encerramento concluído em 0.24 s (código 0).\n');
+  });
+
+  it('avisa quando foi preciso forçar', () => {
+    assert.match(shutdownSummary(12_004, true, null), /forçado depois de 12\.00 s/);
+  });
+});
+
+describe('falha na inicialização', () => {
+  it('explica quando a pasta de dados ainda está com a sessão anterior', () => {
+    assert.match(startFailureMessage(1, 'java', true), /Outra sessão do Shiro ainda está usando a pasta de dados/);
+  });
+
+  it('mantém as mensagens de Java ausente e de saída com código', () => {
+    assert.equal(startFailureMessage(-1, 'C:\\jre\\java.exe', false), 'Não foi possível executar o Java em C:\\jre\\java.exe.');
+    assert.equal(startFailureMessage(1, 'java', false), 'O serviço local terminou durante a inicialização (código 1).');
+  });
+});
+
+describe('arquivo de log', () => {
+  it('fechar espera a última linha chegar ao disco', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'shiro-log-'));
+    const log = new LogFile(path.join(dir, 'backend.log'));
+    log.open();
+    log.write('Encerramento concluído em 0.21 s (código 0).\n');
+    await log.close();
+    assert.match(fs.readFileSync(path.join(dir, 'backend.log'), 'utf8'), /Encerramento concluído em 0\.21 s/);
   });
 });

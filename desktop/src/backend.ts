@@ -109,6 +109,21 @@ export interface BackendOptions {
   startTimeoutMs?: number;
   extraEnv?: Record<string, string>;
   onUnexpectedExit?: (code: number | null) => void;
+  /** O serviço novo está esperando o anterior soltar a pasta de dados (ver DataDirLock no backend). */
+  onWaitingForPreviousSession?: () => void;
+}
+
+/** Marcas que o backend escreve no log enquanto espera a pasta de dados (DataDirLock.WAITING_MARK / BUSY_MARK). */
+export const DATA_LOCK_WAITING = '[pasta-de-dados-em-uso]';
+export const DATA_LOCK_BUSY = '[pasta-de-dados-ocupada]';
+
+/** Mensagem de falha na inicialização; distingue a pasta de dados ainda ocupada por outra sessão. */
+export function startFailureMessage(exitCode: number | null, java: string, dataDirBusy: boolean): string {
+  if (exitCode === -1) return `Não foi possível executar o Java em ${java}.`;
+  if (dataDirBusy) {
+    return 'Outra sessão do Shiro ainda está usando a pasta de dados. Espere alguns segundos e tente de novo.';
+  }
+  return `O serviço local terminou durante a inicialização (código ${exitCode}).`;
 }
 
 /** Serviço Java local: inicia em loopback com porta dinâmica e token desta inicialização, e encerra de forma ordenada. */
@@ -160,7 +175,17 @@ export class BackendProcess {
       },
     });
     this.child = child;
-    const pipe = (chunk: Buffer) => log.write(redact(chunk.toString('utf8'), this.token));
+    let waitingNotified = false;
+    let dataDirBusy = false;
+    const pipe = (chunk: Buffer) => {
+      const text = chunk.toString('utf8');
+      log.write(redact(text, this.token));
+      if (!waitingNotified && text.includes(DATA_LOCK_WAITING)) {
+        waitingNotified = true;
+        this.options.onWaitingForPreviousSession?.();
+      }
+      if (text.includes(DATA_LOCK_BUSY)) dataDirBusy = true;
+    };
     child.stdout?.on('data', pipe);
     child.stderr?.on('data', pipe);
 
@@ -183,9 +208,9 @@ export class BackendProcess {
     void exited.then(code => (exitCode = code));
     while (Date.now() < deadline) {
       if (exitCode !== undefined) {
-        throw new BackendStartError(exitCode === -1
-          ? `Não foi possível executar o Java em ${layout.java}.`
-          : `O serviço local terminou durante a inicialização (código ${exitCode}).`, log.tail());
+        // o evento 'exit' pode chegar antes das últimas linhas do stdout: dá um instante para a marca da trava aparecer
+        if (exitCode !== -1) await delay(200);
+        throw new BackendStartError(startFailureMessage(exitCode, layout.java, dataDirBusy), log.tail());
       }
       const ready = fs.existsSync(readyFile) ? parseReady(fs.readFileSync(readyFile, 'utf8')) : null;
       if (ready) {
@@ -237,6 +262,7 @@ export class BackendProcess {
       if (child.exitCode !== null) resolve();
       else child.once('exit', () => resolve());
     });
+    const started = Date.now();
     try {
       await this.request('POST', '/api/system/shutdown', 3_000);
     } catch {
@@ -247,7 +273,16 @@ export class BackendProcess {
       this.options.log.write('O serviço não encerrou no prazo; encerrando a árvore de processos.\n');
       await killTree(child);
     }
+    this.options.log.write(shutdownSummary(Date.now() - started, !finished, child.exitCode));
   }
+}
+
+/** Linha de log de cada fechamento: quanto tempo levou desde o pedido e se foi preciso forçar. */
+export function shutdownSummary(elapsedMs: number, forced: boolean, code: number | null): string {
+  const seconds = (elapsedMs / 1000).toFixed(2);
+  return forced
+    ? `Encerramento forçado depois de ${seconds} s (o serviço não saiu no prazo).\n`
+    : `Encerramento concluído em ${seconds} s (código ${code ?? 'desconhecido'}).\n`;
 }
 
 function delay(ms: number): Promise<void> {

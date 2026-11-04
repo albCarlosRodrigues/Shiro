@@ -18,6 +18,11 @@ export interface SquadDesktopBridge {
   windowControl(action: 'minimize' | 'toggle-maximize' | 'close'): Promise<void>;
   onWindowState(listener: (state: { maximized: boolean; focused: boolean }) => void): () => void;
   backendLog(): Promise<{ path: string; tail: string }>;
+  /** Modo em segundo plano: o X esconde a janela na bandeja (versões antigas do shell não têm). */
+  getBackgroundMode?(): Promise<{ keepRunningInTray: boolean; trayAvailable: boolean }>;
+  setBackgroundMode?(keepRunningInTray: boolean): Promise<void>;
+  /** Aviso do sistema; o shell só mostra se a janela estiver escondida, minimizada ou sem foco. */
+  notify?(notice: { title: string; body: string }): Promise<{ shown: boolean }>;
 }
 
 declare global {

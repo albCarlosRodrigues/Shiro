@@ -2,6 +2,8 @@ package dev.squaddesktop.web;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,6 +40,9 @@ public class EventStreamController {
 
     private final EventBus bus;
     private final EventStore store;
+    /** Emissores abertos: completados no encerramento para o graceful shutdown não esperar por eles. */
+    private final Set<SseEmitter> open = ConcurrentHashMap.newKeySet();
+    private volatile boolean closing;
     private final ScheduledExecutorService heartbeats =
             Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("sse-heartbeat").factory());
 
@@ -51,6 +56,14 @@ public class EventStreamController {
             @RequestParam(value = "after", required = false) Long after) {
         long cursor = parse(lastEventId, after == null ? -1 : after);
         SseEmitter emitter = new SseEmitter(0L);
+        // Primeiro registra, depois confere a flag: assim nenhum emissor escapa de um encerramento
+        // que comece entre as duas linhas (o EventSource da interface reconecta sozinho).
+        open.add(emitter);
+        if (closing) {
+            open.remove(emitter);
+            emitter.complete();
+            return emitter;
+        }
         BlockingQueue<StoredEvent> queue = new LinkedBlockingQueue<>(10_000);
         EventBus.Subscription subscription = bus.subscribe(event -> {
             if (!queue.offer(event)) {
@@ -88,12 +101,14 @@ public class EventStreamController {
                 emitter.complete();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                completeQuietly(emitter);
             } finally {
                 subscription.close();
                 beat.cancel(false);
             }
         });
         Runnable cleanup = () -> {
+            open.remove(emitter);
             subscription.close();
             beat.cancel(false);
             sender.interrupt();
@@ -102,6 +117,22 @@ public class EventStreamController {
         emitter.onTimeout(cleanup);
         emitter.onError(error -> cleanup.run());
         return emitter;
+    }
+
+    /** Marca o encerramento e completa todos os emissores abertos. */
+    void completeAll() {
+        closing = true;
+        for (SseEmitter emitter : open) {
+            completeQuietly(emitter);
+        }
+    }
+
+    private static void completeQuietly(SseEmitter emitter) {
+        try {
+            emitter.complete();
+        } catch (RuntimeException ignored) {
+            // já completado ou conexão já fechada
+        }
     }
 
     private static void send(SseEmitter emitter, StoredEvent event) throws IOException {
@@ -147,6 +178,12 @@ public class EventStreamController {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    /** ContextClosedEvent sai antes de qualquer fase de lifecycle parar, logo antes do graceful shutdown. */
+    @org.springframework.context.event.EventListener(org.springframework.context.event.ContextClosedEvent.class)
+    void onContextClosed() {
+        completeAll();
     }
 
     @PreDestroy

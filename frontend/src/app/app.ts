@@ -5,8 +5,10 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ApiError } from './core/api';
 import { Desktop } from './core/desktop';
 import { EventStream } from './core/event-stream';
+import { RunNotifications } from './core/run-notifications';
 import { Shell } from './shell/shell';
 import { Icon } from './shell/icon';
+import { InterruptedReview } from './shell/interrupted-review';
 import { CatalogStore } from './state/catalog.store';
 import { SessionsStore } from './state/sessions.store';
 import { WorkspaceStore } from './state/workspace.store';
@@ -17,7 +19,7 @@ type Boot = { phase: 'loading' } | { phase: 'ready' } | { phase: 'error'; code: 
 @Component({
   selector: 'sd-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ShiroMark, Shell, Icon],
+  imports: [ShiroMark, Shell, Icon, InterruptedReview],
   styles: `
     .boot { display: grid; place-items: center; height: 100vh; background: var(--bg-0); }
     .boot-card { display: flex; flex-direction: column; gap: 12px; width: min(520px, 92vw); padding: 24px; }
@@ -27,7 +29,7 @@ type Boot = { phase: 'loading' } | { phase: 'ready' } | { phase: 'error'; code: 
   `,
   template: `
     @switch (boot().phase) {
-      @case ('ready') { <sd-shell /> }
+      @case ('ready') { <sd-shell /><sd-interrupted-review /> }
       @case ('loading') {
         <div class="boot" role="status" aria-live="polite">
           <div class="boot-card">
@@ -60,6 +62,8 @@ export class App implements OnInit {
   private readonly themes = inject(ThemeStore);
   private readonly workspace = inject(WorkspaceStore);
   private readonly stream = inject(EventStream);
+  // avisos do sistema quando uma execução termina, falha ou esbarra numa permissão (só no app desktop)
+  protected readonly notifications = inject(RunNotifications);
 
   protected readonly boot = signal<Boot>({ phase: 'loading' });
   protected readonly log = signal('');

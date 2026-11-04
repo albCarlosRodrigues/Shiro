@@ -124,6 +124,23 @@ try {
 
   await window.screenshot({ path: path.join(shots, '01-inicio.png') });
 
+  /* ---------- X com o modo em segundo plano: esconde na bandeja, serviço continua ---------- */
+  await window.evaluate(() => window.squadDesktop.windowControl('close')).catch(() => undefined);
+  await window.waitForTimeout(800);
+  const hidden = await app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows()[0];
+    return { exists: Boolean(w), visible: w ? w.isVisible() : null };
+  });
+  check('X esconde a janela na bandeja (app continua aberto)', hidden.exists && hidden.visible === false, JSON.stringify(hidden));
+  const stillServing = await api(window, 'GET', '/api/health');
+  check('serviço continua respondendo com a janela escondida', stillServing.status === 200, String(stillServing.status));
+  await app.evaluate(({ app: electronApp }) => electronApp.emit('second-instance'));
+  await window.waitForTimeout(500);
+  const shown = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible() ?? false);
+  check('abrir o app de novo traz a janela de volta', shown === true);
+  const prefs = JSON.parse(fs.readFileSync(path.join(userData, 'background.json'), 'utf8'));
+  check('aviso da bandeja registrado como mostrado', prefs.trayNoticeShown === true && prefs.keepRunningInTray === true, JSON.stringify(prefs));
+
   /* ---------- preparar um projeto e uma execução de demonstração ---------- */
   await api(window, 'POST', '/api/system/starter-agents');
   const settings = (await api(window, 'GET', '/api/settings')).body;
@@ -154,7 +171,7 @@ try {
     };
   });
   await app.evaluate(() => { globalThis.__dialogAnswer = 1; });
-  await window.evaluate(() => window.squadDesktop.windowControl('close'));
+  await app.evaluate(({ app: electronApp }) => electronApp.quit());
   await window.waitForTimeout(1500);
   dialogs.push(...(await app.evaluate(() => globalThis.__dialogCalls)));
   const stillOpen = await window.evaluate(() => document.querySelector('sd-shell') !== null).catch(() => false);
@@ -171,7 +188,7 @@ try {
   if (canListProcesses) check('serviço Java em execução', javaPids.length === 1, String(javaPids));
   await app.evaluate(() => { globalThis.__dialogAnswer = 0; });
   started = Date.now();
-  await window.evaluate(() => window.squadDesktop.windowControl('close')).catch(() => undefined);
+  await app.evaluate(({ app: electronApp }) => electronApp.quit()).catch(() => undefined);
   check('app encerra depois de confirmar', await exited(appPid, 30_000), `${((Date.now() - started) / 1000).toFixed(1)} s`);
   await new Promise(r => setTimeout(r, 500));
   if (canListProcesses) check('serviço Java encerrado junto', javaPids.every(pid => !alive(pid)));
@@ -196,7 +213,7 @@ try {
     dialog.showMessageBox = async () => { globalThis.__asked++; return { response: 0 }; };
   });
   const pid2 = await app.evaluate(() => process.pid);
-  await again.evaluate(() => window.squadDesktop.windowControl('close')).catch(() => undefined);
+  await app.evaluate(({ app: electronApp }) => electronApp.quit()).catch(() => undefined);
   check('sem trabalho ativo, fecha direto e sem pergunta', await exited(pid2, 30_000));
 } catch (error) {
   check('execução do teste', false, error instanceof Error ? error.stack : String(error));

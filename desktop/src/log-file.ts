@@ -24,9 +24,12 @@ export class LogFile {
     this.stream?.write(text);
   }
 
-  close(): void {
-    this.stream?.end();
+  /** Fecha o arquivo; resolve quando o que foi escrito chegou ao disco (o app sai logo depois). */
+  close(): Promise<void> {
+    const stream = this.stream;
     this.stream = null;
+    if (!stream) return Promise.resolve();
+    return new Promise(resolve => stream.end(() => resolve()));
   }
 
   /** Últimas linhas, para o diagnóstico na interface. */
