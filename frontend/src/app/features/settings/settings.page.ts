@@ -11,11 +11,12 @@ import { Icon } from '../../shell/icon';
 import { Nav } from '../../shell/nav';
 import { CatalogStore } from '../../state/catalog.store';
 import { BackupSection } from './backup-section';
+import { DesktopSection } from './desktop-section';
 
 @Component({
   selector: 'sd-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Icon, BackupSection],
+  imports: [ReactiveFormsModule, Icon, BackupSection, DesktopSection],
   styles: `
     :host { display: block; height: 100%; overflow: auto; }
     .wrap { max-width: 920px; margin: 0 auto; padding: 24px 28px 48px; }
@@ -139,6 +140,7 @@ import { BackupSection } from './backup-section';
         }
       </section>
 
+      <sd-desktop-section />
       <sd-backup-section />
 
       <section class="card">
