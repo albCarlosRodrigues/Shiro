@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { javaArgs, parseReady, resolveLayout, shutdownSummary, utf8Locale } from '../backend';
+import { javaArgs, parseReady, resolveLayout, shutdownSummary, startFailureMessage, utf8Locale } from '../backend';
 import {
   IpcValidationError, isTrustedSender, validateOpenText, validatePickFolder, validateSaveText, validateWindowAction,
 } from '../ipc-contract';
@@ -126,5 +126,16 @@ describe('resumo do encerramento', () => {
 
   it('avisa quando foi preciso forçar', () => {
     assert.match(shutdownSummary(12_004, true, null), /forçado depois de 12\.00 s/);
+  });
+});
+
+describe('falha na inicialização', () => {
+  it('explica quando a pasta de dados ainda está com a sessão anterior', () => {
+    assert.match(startFailureMessage(1, 'java', true), /Outra sessão do Shiro ainda está usando a pasta de dados/);
+  });
+
+  it('mantém as mensagens de Java ausente e de saída com código', () => {
+    assert.equal(startFailureMessage(-1, 'C:\\jre\\java.exe', false), 'Não foi possível executar o Java em C:\\jre\\java.exe.');
+    assert.equal(startFailureMessage(1, 'java', false), 'O serviço local terminou durante a inicialização (código 1).');
   });
 });

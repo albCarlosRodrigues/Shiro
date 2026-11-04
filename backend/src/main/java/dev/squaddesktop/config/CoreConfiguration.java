@@ -70,9 +70,19 @@ public class CoreConfiguration {
         return new JacksonJsonCodec(mapper);
     }
 
+    /**
+     * Trava exclusiva da pasta de dados. O banco depende dela: só abre depois de pegá-la e fecha antes de ela ser
+     * solta. Se o serviço anterior ainda estiver encerrando, espera até {@code squad.data-lock-wait-ms} (15 s).
+     */
+    @Bean(destroyMethod = "close")
+    DataDirLock dataDirLock(SquadPaths paths, Environment env) {
+        long waitMs = env.getProperty("squad.data-lock-wait-ms", Long.class, 15_000L);
+        return DataDirLock.acquire(paths.dataDir(), Duration.ofMillis(waitMs));
+    }
+
     /** Abre o banco e aplica as migrações; antes de migrar um banco existente, guarda uma cópia em backups/. */
     @Bean(destroyMethod = "close")
-    Database database(SquadPaths paths, Clock clock) {
+    Database database(SquadPaths paths, DataDirLock dataDirLock, Clock clock) {
         boolean existed = java.nio.file.Files.exists(paths.database());
         Database database = new Database(paths.database());
         Migrator migrator = new Migrator(database, clock);
