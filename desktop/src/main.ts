@@ -155,6 +155,7 @@ async function startBackend(): Promise<void> {
     parentPid: process.pid,
     extraEnv: { SQUAD_APP_VERSION: app.getVersion() },
     onUnexpectedExit: code => void onBackendCrash(code),
+    onWaitingForPreviousSession: () => void mainWindow?.loadURL(splash('Fechando a sessão anterior…')),
   });
   try {
     await instance.start();
