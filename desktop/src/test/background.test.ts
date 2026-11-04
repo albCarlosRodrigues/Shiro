@@ -4,7 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_BACKGROUND, closeAction, loadBackground, saveBackground, validateBackgroundSetting } from '../background';
+import {
+  DEFAULT_BACKGROUND, closeAction, loadBackground, saveBackground, shouldNotify, validateBackgroundSetting, validateNotification,
+} from '../background';
 import { IpcValidationError } from '../ipc-contract';
 
 describe('modo em segundo plano', () => {
@@ -37,5 +39,22 @@ describe('modo em segundo plano', () => {
     assert.equal(closeAction({ ...base, keepRunningInTray: false }), 'quit');
     assert.equal(closeAction({ ...base, trayAvailable: false }), 'quit', 'sem bandeja, esconder deixaria o app inacessível');
     assert.equal(closeAction({ ...base, backendReady: false }), 'quit', 'sem serviço no ar, o X sai');
+  });
+});
+
+describe('avisos do sistema', () => {
+  it('só avisa quando a pessoa não está olhando a janela', () => {
+    const base = { exists: true, visible: true, minimized: false, focused: true };
+    assert.equal(shouldNotify(base), false);
+    assert.equal(shouldNotify({ ...base, visible: false }), true, 'escondida na bandeja');
+    assert.equal(shouldNotify({ ...base, minimized: true }), true);
+    assert.equal(shouldNotify({ ...base, focused: false }), true, 'outra janela na frente');
+  });
+
+  it('valida o aviso pedido pela interface', () => {
+    assert.deepEqual(validateNotification({ title: ' Execução concluída ', body: 'ok' }), { title: 'Execução concluída', body: 'ok' });
+    for (const bad of [null, {}, { title: '', body: 'x' }, { title: 'x'.repeat(121), body: '' }, { title: 't', body: 'x'.repeat(301) }, { title: 1, body: '' }]) {
+      assert.throws(() => validateNotification(bad), IpcValidationError, JSON.stringify(bad));
+    }
   });
 });

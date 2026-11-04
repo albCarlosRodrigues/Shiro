@@ -5,6 +5,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ApiError } from './core/api';
 import { Desktop } from './core/desktop';
 import { EventStream } from './core/event-stream';
+import { RunNotifications } from './core/run-notifications';
 import { Shell } from './shell/shell';
 import { Icon } from './shell/icon';
 import { CatalogStore } from './state/catalog.store';
@@ -60,6 +61,8 @@ export class App implements OnInit {
   private readonly themes = inject(ThemeStore);
   private readonly workspace = inject(WorkspaceStore);
   private readonly stream = inject(EventStream);
+  // avisos do sistema quando uma execução termina, falha ou esbarra numa permissão (só no app desktop)
+  protected readonly notifications = inject(RunNotifications);
 
   protected readonly boot = signal<Boot>({ phase: 'loading' });
   protected readonly log = signal('');

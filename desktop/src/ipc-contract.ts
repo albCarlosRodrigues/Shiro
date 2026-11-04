@@ -18,6 +18,7 @@ export const CHANNELS = {
   backendLog: 'sd:backend-log',
   getBackground: 'sd:get-background',
   setBackground: 'sd:set-background',
+  notify: 'sd:notify',
 } as const;
 
 export type Channel = (typeof CHANNELS)[keyof typeof CHANNELS];

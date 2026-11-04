@@ -20,6 +20,7 @@ const CH = {
   backendLog: 'sd:backend-log',
   getBackground: 'sd:get-background',
   setBackground: 'sd:set-background',
+  notify: 'sd:notify',
 } as const;
 
 const info = ipcRenderer.sendSync(CH.init) as InitInfo;
@@ -38,6 +39,7 @@ const bridge = {
   backendLog: (): Promise<{ path: string; tail: string }> => ipcRenderer.invoke(CH.backendLog),
   getBackgroundMode: (): Promise<{ keepRunningInTray: boolean; trayAvailable: boolean }> => ipcRenderer.invoke(CH.getBackground),
   setBackgroundMode: (keepRunningInTray: boolean): Promise<void> => ipcRenderer.invoke(CH.setBackground, { keepRunningInTray }),
+  notify: (notice: { title: string; body: string }): Promise<{ shown: boolean }> => ipcRenderer.invoke(CH.notify, notice),
   onWindowState(listener: (state: { maximized: boolean; focused: boolean }) => void): () => void {
     // o evento do Electron não é repassado: só os dois campos esperados
     const wrapped = (_event: IpcRendererEvent, state: { maximized?: unknown; focused?: unknown }) =>
