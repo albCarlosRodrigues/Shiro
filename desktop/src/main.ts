@@ -1,8 +1,9 @@
-import { BrowserWindow, app, dialog, ipcMain, screen, session, shell, type IpcMainInvokeEvent } from 'electron';
+import { BrowserWindow, Menu, Notification, Tray, app, dialog, ipcMain, screen, session, shell, type IpcMainInvokeEvent } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { BackendProcess, BackendStartError, resolveLayout } from './backend';
+import { closeAction, loadBackground, saveBackground, validateBackgroundSetting } from './background';
 import {
   CHANNELS, IpcValidationError, isTrustedSender, validateOpenText, validatePath, validatePickFolder, validateSaveText,
   validateWindowAction, validateAppearance, type InitInfo,
@@ -31,10 +32,13 @@ const paths = {
   logs: path.join(userData, 'logs'),
   run: path.join(userData, 'run'),
   windowState: path.join(userData, 'window-state.json'),
+  background: path.join(userData, 'background.json'),
 };
 const appearanceFile = path.join(userData, 'appearance.json');
 let appearance = loadAppearance(appearanceFile);
 const backendLog = new LogFile(path.join(paths.logs, 'backend.log'));
+let background = loadBackground(paths.background);
+let tray: Tray | null = null;
 
 let mainWindow: BrowserWindow | null = null;
 let backend: BackendProcess | null = null;
@@ -44,12 +48,8 @@ let closeRequested = false;
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
+  // abrir o app de novo (atalho, menu Iniciar) traz de volta a janela, inclusive se estiver escondida na bandeja
+  app.on('second-instance', () => showWindow());
   app.whenReady().then(boot).catch(err => {
     dialog.showErrorBox('Shiro', `Falha ao iniciar: ${err instanceof Error ? err.message : String(err)}`);
     app.exit(1);
@@ -85,6 +85,7 @@ async function boot(): Promise<void> {
   registerIpc();
   backendLog.open();
   createWindow();
+  createTray();
   await startBackend();
 }
 
@@ -132,11 +133,65 @@ function createWindow(): void {
       const bounds = mainWindow.getNormalBounds();
       saveWindowState(paths.windowState, { ...bounds, maximized: mainWindow.isMaximized() });
     }
-    if (quitting) return;
+    const action = closeAction({
+      quitting,
+      keepRunningInTray: background.keepRunningInTray,
+      trayAvailable: tray !== null,
+      backendReady: backend !== null && !closeRequested,
+    });
+    if (action === 'allow') return;
     event.preventDefault();
-    void requestQuit();
+    if (action === 'hide') hideToTray();
+    else void requestQuit();
+  });
+  // logoff, reinício ou desligamento do Windows: sem diálogo; pede o encerramento ordenado do serviço e sai
+  mainWindow.on('session-end', () => {
+    closeRequested = true;
+    void (backend?.stop(5_000) ?? Promise.resolve()).finally(() => {
+      quitting = true;
+      app.quit();
+    });
   });
   mainWindow.on('closed', () => (mainWindow = null));
+}
+
+/* ---------- bandeja e segundo plano ---------- */
+
+function createTray(): void {
+  try {
+    tray = new Tray(path.join(__dirname, '..', 'resources', process.platform === 'win32' ? 'icon.ico' : 'icon.png'));
+  } catch (error) {
+    // sem bandeja (alguns ambientes Linux), esconder deixaria o app inacessível: o X volta a encerrar
+    backendLog.write(`Bandeja do sistema indisponível (${error instanceof Error ? error.message : String(error)}); o X encerra o app.\n`);
+    tray = null;
+    return;
+  }
+  tray.setToolTip('Shiro');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Abrir o Shiro', click: () => showWindow() },
+    { type: 'separator' },
+    { label: 'Sair', click: () => void requestQuit() },
+  ]));
+  tray.on('click', () => showWindow());
+}
+
+function showWindow(): void {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+}
+
+/** O X com o modo em segundo plano ligado: a janela some, o serviço e os agentes continuam. */
+function hideToTray(): void {
+  mainWindow?.hide();
+  if (background.trayNoticeShown) return;
+  background = { ...background, trayNoticeShown: true };
+  saveBackground(paths.background, background);
+  const title = 'O Shiro continua rodando';
+  const content = 'Os agentes seguem trabalhando. Para abrir de novo ou sair, use o ícone do Shiro na bandeja.';
+  if (process.platform === 'win32') tray?.displayBalloon({ title, content, iconType: 'info' });
+  else if (Notification.isSupported()) new Notification({ title, body: content }).show();
 }
 
 async function startBackend(): Promise<void> {
@@ -206,6 +261,7 @@ async function onBackendCrash(code: number | null): Promise<void> {
   if (quitting || closeRequested) return;
   backend = null;
   void mainWindow?.loadURL(splash('O serviço local parou.'));
+  showWindow();
   const { response } = await dialog.showMessageBox(mainWindow!, {
     type: 'warning',
     title: 'Shiro',
@@ -243,6 +299,8 @@ async function requestQuit(): Promise<void> {
   try {
     const work = backend ? await backend.activeWork() : null;
     if (work?.active && mainWindow) {
+      // pode estar escondida na bandeja: o aviso precisa aparecer
+      showWindow();
       const { response } = await dialog.showMessageBox(mainWindow, {
         type: 'warning',
         title: 'Há trabalho em andamento',
@@ -263,7 +321,10 @@ async function requestQuit(): Promise<void> {
   } finally {
     if (closeRequested) {
       quitting = true;
-      backendLog.close();
+      tray?.destroy();
+      tray = null;
+      // espera o log chegar ao disco: sem isso, a última linha (duração do fechamento) podia se perder
+      await backendLog.close();
       app.quit();
     }
   }
@@ -301,6 +362,11 @@ const none = (value: unknown) => {
 };
 
 function registerIpc(): void {
+  ipcMain.handle(CHANNELS.getBackground, guard(none, () => ({ keepRunningInTray: background.keepRunningInTray, trayAvailable: tray !== null })));
+  ipcMain.handle(CHANNELS.setBackground, guard(validateBackgroundSetting, value => {
+    background = { ...background, keepRunningInTray: value.keepRunningInTray };
+    saveBackground(paths.background, background);
+  }));
   ipcMain.handle(CHANNELS.setAppearance, guard(validateAppearance, value => {
     saveAppearance(appearanceFile, value);
     appearance = value;

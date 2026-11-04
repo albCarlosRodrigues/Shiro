@@ -16,6 +16,8 @@ export const CHANNELS = {
   windowControl: 'sd:window-control',
   windowState: 'sd:window-state',
   backendLog: 'sd:backend-log',
+  getBackground: 'sd:get-background',
+  setBackground: 'sd:set-background',
 } as const;
 
 export type Channel = (typeof CHANNELS)[keyof typeof CHANNELS];

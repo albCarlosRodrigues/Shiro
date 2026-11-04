@@ -139,3 +139,14 @@ describe('falha na inicialização', () => {
     assert.equal(startFailureMessage(1, 'java', false), 'O serviço local terminou durante a inicialização (código 1).');
   });
 });
+
+describe('arquivo de log', () => {
+  it('fechar espera a última linha chegar ao disco', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'shiro-log-'));
+    const log = new LogFile(path.join(dir, 'backend.log'));
+    log.open();
+    log.write('Encerramento concluído em 0.21 s (código 0).\n');
+    await log.close();
+    assert.match(fs.readFileSync(path.join(dir, 'backend.log'), 'utf8'), /Encerramento concluído em 0\.21 s/);
+  });
+});
